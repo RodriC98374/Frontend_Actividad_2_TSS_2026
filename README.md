@@ -1,6 +1,6 @@
-# Encuestas UMSS — Frontend
+# ACREDI — Frontend de encuestas UMSS
 
-Interfaz React 19 + Vite + React Router para el contrato OpenAPI 1.2.0 del backend Laravel. Mantiene el stack original y no agrega dependencias de ejecución.
+Interfaz React 19 + Vite + React Router para el contrato OpenAPI 1.2.0 del backend Laravel. Utiliza Lucide React para los iconos y tokens globales para la identidad visual de ACREDI.
 
 ## Ejecutar con el backend existente
 
