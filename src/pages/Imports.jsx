@@ -1,9 +1,11 @@
+import { useConfirmDiscard } from '@/context/unsaved.js'
 import { useRef, useState } from 'react'
 import {
   Link,
   useNavigate,
   useOutletContext,
   useParams,
+  useSearchParams,
 } from 'react-router-dom'
 import { api } from '@/services/api.js'
 import { useAuth } from '@/context/auth.js'
@@ -26,12 +28,14 @@ import { buildMapping, displayValue } from '@/utils/survey.js'
 
 export default function Imports() {
   const [page, setPage] = useState(1)
-  const resource = useResource('/imports', { page, per_page: 20 })
+  const [searchParams] = useSearchParams()
+  const datasetId = searchParams.get('dataset_id') || undefined
+  const resource = useResource('/imports', { page, per_page: 20, dataset_id: datasetId })
   return (
     <>
       <PageTitle
         title="Importaciones"
-        description="Archivos originales, configuración y estado de incorporación."
+        description={datasetId ? "Importaciones del estudio seleccionado." : "Archivos originales, configuración y estado de incorporación."}
         actions={
           <Link className="button" to="/estudios">
             Elegir un estudio
@@ -110,9 +114,9 @@ export function Upload() {
         title="Importar un archivo"
         description={`Las respuestas se incorporarán a «${dataset.name}» después de revisarlas.`}
       />
-      {!user.can_view_contacts ? (
+      {!user.can_import_files ? (
         <div className="notice">
-          La carga y el mapeo de originales requieren permiso de contactos.
+          La carga y el mapeo de originales requieren permiso de importación y originales.
           Solicita ese permiso al administrador del sistema.
         </div>
       ) : (
@@ -202,6 +206,7 @@ export function Upload() {
 export function ImportDetail() {
   const { importId } = useParams()
   const resource = useResource(`/imports/${importId}`)
+  const confirmDiscard = useConfirmDiscard()
   const [tab, setTab] = useState('configurar')
   const item = resource.data?.data
   const editable =
@@ -252,7 +257,7 @@ export function ImportDetail() {
               <button
                 key={value}
                 className={tab === value ? 'active' : ''}
-                onClick={() => setTab(value)}
+                onClick={() => { if (value === tab || confirmDiscard()) setTab(value) }}
               >
                 {text}
               </button>
@@ -283,13 +288,14 @@ export function ImportDetail() {
 
 function SheetConfiguration({ item, editable, onSaved }) {
   const { user } = useAuth()
+  const confirmDiscard = useConfirmDiscard()
   const [sheetId, setSheetId] = useState(item.sheets[0]?.id || '')
   const sheet = item.sheets.find((s) => s.id === sheetId)
-  if (!user.can_view_contacts)
+  if (!user.can_import_files)
     return (
       <div className="notice">
         La vista previa y configuración de originales requieren permiso de
-        contactos. Puedes continuar con la revisión de datos preparados.
+        importación. Puedes continuar con la revisión de datos preparados.
       </div>
     )
   return (
@@ -298,7 +304,7 @@ function SheetConfiguration({ item, editable, onSaved }) {
         <Select
           label="Hoja del archivo"
           value={sheetId}
-          onChange={(e) => setSheetId(e.target.value)}
+          onChange={(e) => { if (confirmDiscard()) setSheetId(e.target.value) }}
           options={item.sheets.map((s) => ({
             value: s.id,
             label: `${s.name} · ${s.row_count} filas, ${s.column_count} columnas`,

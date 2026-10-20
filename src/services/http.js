@@ -15,10 +15,12 @@ export function createApiClient({
   baseUrl,
   getToken = () => null,
   onUnauthorized = () => {},
+  getCsrfToken = () => null,
+  sessionAuth = false,
   fetcher = (...args) => fetch(...args),
 }) {
   const base = normalizeBase(baseUrl)
-  async function request(
+  async function performRequest(
     path,
     {
       method = 'GET',
@@ -48,8 +50,10 @@ export function createApiClient({
         {
           ...options,
           method,
+          credentials: token === undefined && sessionAuth ? 'include' : 'omit',
           headers: {
             Accept: 'application/json',
+            ...(sessionAuth && token === undefined && getCsrfToken() ? {'X-XSRF-TOKEN': getCsrfToken()} : {}),
             ...(access ? { Authorization: `Bearer ${access}` } : {}),
             ...(body !== undefined && !multipart
               ? { 'Content-Type': 'application/json' }
@@ -74,7 +78,7 @@ export function createApiClient({
     }
     if (!response.ok) {
       const data = await response.json().catch(() => ({}))
-      if (response.status === 401 && access && token === undefined)
+      if ((response.status === 401 || response.status === 419) && (access || sessionAuth) && token === undefined)
         onUnauthorized()
       throw new ApiError(
         data.message || `La solicitud falló (${response.status}).`,
@@ -93,6 +97,31 @@ export function createApiClient({
         response.status,
         'invalid_response',
       )
+    }
+  }
+  async function request(path, options = {}) {
+    const { timeoutMs = options.method && options.method !== 'GET' ? 120000 : 30000, signal, ...rest } = options
+    const controller = new AbortController()
+    const cancel = () => controller.abort(signal.reason)
+    if (signal?.aborted) cancel()
+    else signal?.addEventListener('abort', cancel, { once: true })
+    let timer
+    const deadline = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        controller.abort()
+        reject(new ApiError(
+          rest.method && rest.method !== 'GET'
+            ? 'El servidor tardó demasiado. La operación podría haberse completado; consulta su estado antes de volver a enviarla.'
+            : 'El servidor tardó demasiado en responder. Puedes volver a cargar los datos.',
+          0, 'request_timeout',
+        ))
+      }, timeoutMs)
+    })
+    try {
+      return await Promise.race([performRequest(path, { ...rest, signal: controller.signal }), deadline])
+    } finally {
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', cancel)
     }
   }
   return {

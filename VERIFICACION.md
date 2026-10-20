@@ -34,3 +34,13 @@ El escaneo estático de Taste en modo app no encontró fallos. Sus advertencias 
 ## Límites
 
 No se probó un despliegue público ni carga concurrente masiva. La ejecución local depende de Docker para Laravel/PostgreSQL y de una cuenta administrativa real para la base de trabajo. Las variables de esquemas nuevos siguen sin conexión a importación/captura/estadísticas porque esa parte está pendiente en el backend; la interfaz lo informa explícitamente. Los perfiles aplicables desde el configurador se muestran en una primera página de hasta 100 y las invitaciones existentes no tienen endpoint de listado.
+
+## Actualización sprint 2
+
+El diseño y las dependencias evolucionaron a ACREDI con Lucide. Las notas iniciales anteriores son evidencia histórica. Se añadieron sesiones Laravel con cookies, CSRF y permiso independiente de importación; los cambios de backend y la migración sí forman parte de este sprint. Frontend: 16 pruebas aprobadas, build/lint correctos. Pruebas específicas backend: sesión/logout, CSRF y separación de permisos aprobadas. Prueba HTTP local real por el proxy: CSRF 204, login 200, recuperación 200, logout 204 y petición posterior 401. La prueba interactiva de avisos de cambios pendientes está pendiente porque la herramienta del navegador rechazó el acceso a localhost.
+
+Cierre de pruebas del sprint 2: 32 pruebas backend aprobadas (1816 aserciones) y 16 frontend; build/lint correctos. Verificación interactiva del navegador pendiente por bloqueo de la herramienta.
+
+## Prioridad: importación habilitada
+
+La cuenta local admin@example.test tiene can_import_files=true y can_view_contacts=false, por autorización del usuario. Se comprobó de nuevo el flujo HTTP en umss_testing: carga CSV, vista previa, evaluación, mapeo, perfiles, validación, incidencias, decisiones, revalidación, incorporación idempotente, consulta de respuestas, estadísticas y descargas. Ningún registro sintético se incorporó a la base umss. Guía operativa: IMPORTACION.md. La inspección interactiva del navegador continúa pendiente por la política de acceso de la herramienta.

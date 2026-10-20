@@ -1,15 +1,18 @@
+import { useConfirmDiscard } from '@/context/unsaved.js'
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/auth.js'
 import { Brand, Icon, ErrorNotice } from '@/components/ui.jsx'
 
 export default function Layout() {
+  const confirmDiscard = useConfirmDiscard()
   const { user, logout } = useAuth()
   const [menu, setMenu] = useState(false)
   const [error, setError] = useState(null)
   const [leaving, setLeaving] = useState(false)
   const navigate = useNavigate()
   async function leave() {
+    if (!confirmDiscard()) return
     setLeaving(true)
     try {
       await logout()
@@ -63,7 +66,7 @@ export default function Layout() {
           </NavLink>
           <p className="nav-label">Sistema</p>
           <NavLink to="/ayuda">
-            <Icon name="file" />
+            <Icon name="help" />
             Guía y capacidades
           </NavLink>
         </nav>

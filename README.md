@@ -13,7 +13,7 @@ npm run dev
 
 Abrir la URL que imprime Vite (puerto 5173). El cliente usa `/api/v1` y Vite redirige `/api` al backend local `http://127.0.0.1:8000`. Iniciar antes el backend y PostgreSQL siguiendo el README del repositorio de backend.
 
-No hay credenciales administrativas predeterminadas para la aplicación. Usar la cuenta creada mediante `php artisan app:create-admin` del backend. El token administrativo se mantiene solo en memoria: al recargar o abrir otra pestaña hay que iniciar sesión nuevamente.
+No hay credenciales administrativas predeterminadas para la aplicación. Usar la cuenta creada mediante `php artisan app:create-admin` del backend. El navegador usa una sesión Laravel con cookie HttpOnly y protección CSRF. Al recargar, consulta /auth/me antes de resolver las rutas protegidas. No guarda contraseñas ni tokens administrativos en localStorage.
 
 Opcionalmente copiar `.env.example` a `.env.local`. Para una API remota configurar `VITE_API_URL=https://servidor/api/v1` y autorizar el origen del frontend mediante `FRONTEND_URL` en el backend. Las variables `VITE_*` son públicas: nunca colocar contraseñas o secretos. Una URL que solo contiene el origen, por ejemplo `http://localhost:8000`, se normaliza agregando `/api/v1`.
 
@@ -44,7 +44,7 @@ npm run dev
 
 Los esquemas configurables se registran y publican, pero **las nuevas variables todavía no se conectan con importación, captura ni estadísticas**. Esos flujos usan los catálogos de titulados y empleadores. La interfaz lo informa y no simula esa integración. También siguen fuera del backend la gestión visual de cuentas, la recuperación de contraseñas, la edición de contactos, la conciliación de personas repetidas y la exportación de microdatos.
 
-La vista de resumen muestra archivos del estudio entre las cinco cargas más recientes del sistema; el listado completo está en Importaciones. Todas las cifras operativas proceden de la API. Los ejemplos en `tests/` son sintéticos.
+La vista de resumen consulta las cinco cargas más recientes del estudio mediante dataset_id; el enlace al listado completo conserva ese filtro. Todas las cifras operativas proceden de la API. Los ejemplos en `tests/` son sintéticos.
 
 ## Validación
 

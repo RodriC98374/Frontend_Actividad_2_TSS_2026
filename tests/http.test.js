@@ -246,3 +246,43 @@ test('el formulario conserva false y cero y limpia contactos sin consentimiento'
   assert.equal(displayValue(0), '0')
   assert.equal(displayValue(null), '—')
 })
+
+
+test('limita consultas y lectura del cuerpo sin reintentar escrituras', async () => {
+  let calls = 0
+  const api = createApiClient({baseUrl: '/api/v1', fetcher: async () => {
+    calls++
+    return { ok: true, status: 200, json: () => new Promise(() => {}) }
+  }})
+  await assert.rejects(api.get('/datasets', {timeoutMs: 10}), e => e.code === 'request_timeout')
+  await assert.rejects(api.post('/datasets', {name: 'test'}, {timeoutMs: 10}), e => e.code === 'request_timeout' && e.message.includes('podría haberse completado'))
+  assert.equal(calls, 2)
+})
+
+test('conserva cancelación del consumidor', async () => {
+  const controller = new AbortController()
+  const api = createApiClient({baseUrl: '/api/v1', fetcher: (_url, {signal}) => new Promise((resolve, reject) => {
+    signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), {once: true})
+  })})
+  const pending = api.get('/datasets', {signal: controller.signal, timeoutMs: 1000})
+  controller.abort()
+  await assert.rejects(pending, e => e.name === 'AbortError')
+})
+
+
+test('sesión usa cookies y CSRF, captura permanece aislada', async () => {
+  const requests = []
+  let expired = 0
+  const client = createApiClient({baseUrl:'/api/v1', sessionAuth:true, getCsrfToken:()=> 'csrf-test', onUnauthorized:()=>expired++, fetcher:async (_url,options)=>{
+    requests.push(options)
+    return new Response(JSON.stringify({message:'expired'}), {status:401})
+  }})
+  await assert.rejects(client.post('/datasets',{}))
+  assert.equal(requests[0].credentials,'include')
+  assert.equal(requests[0].headers['X-XSRF-TOKEN'],'csrf-test')
+  assert.equal(expired,1)
+  await assert.rejects(client.post('/capture/submissions',{}, {token:'invitation'}))
+  assert.equal(requests[1].credentials,'omit')
+  assert.equal(requests[1].headers['X-XSRF-TOKEN'],undefined)
+  assert.equal(expired,1)
+})

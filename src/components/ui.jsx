@@ -1,3 +1,5 @@
+import { useUnsavedChanges } from '@/context/unsaved.js'
+import { Folder, FileUp, ChartColumn, Layers, ArrowRight, Plus, LogOut, Menu, Check, FileText, BookOpen, ClipboardList, Link, Download, Settings } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 
 import { label, number } from '@/utils/format.js'
@@ -153,10 +155,12 @@ export function ActionForm({
   disabled = false,
   submitDisabled = false,
   onSuccess,
+  protectChanges = true,
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const errorRef = useRef(null)
+  const markDirty = useUnsavedChanges()
   useEffect(() => {
     if (error) errorRef.current?.focus()
   }, [error])
@@ -164,19 +168,21 @@ export function ActionForm({
     event.preventDefault()
     if (busy) return
     const form = event.currentTarget
+    markDirty(false)
     setBusy(true)
     setError(null)
     try {
       await onSubmit(new FormData(form), form)
       onSuccess?.()
     } catch (e) {
+      markDirty(protectChanges)
       setError(e)
     } finally {
       setBusy(false)
     }
   }
   return (
-    <form className={`form ${className}`} onSubmit={run}>
+    <form className={`form ${className}`} onSubmit={run} onChange={() => markDirty(protectChanges)}>
       <fieldset disabled={busy || disabled}>
         {children}
         {error && (
@@ -197,54 +203,24 @@ export function ActionForm({
     </form>
   )
 }
-export function Icon({ name, size = 18 }) {
-  const paths = {
-    studies: 'M3 5h7l2 2h9v13H3z',
-    upload: 'M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6',
-    chart: 'M4 3v18h17M8 16v-4m5 4V7m5 9v-6',
-    grid: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
-    arrow: 'M5 12h14m-6-6 6 6-6 6',
-    plus: 'M12 5v14M5 12h14',
-    logout: 'M9 4H4v16h5m5-13 5 5-5 5m-6-5h11',
-    menu: 'M4 6h16M4 12h16M4 18h16',
-    check: 'm5 12 4 4L19 6',
-    file: 'M5 3h9l5 5v13H5zm9 0v5h5M8 12h8M8 16h6',
-  }
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d={paths[name] || paths.grid} />
-    </svg>
-  )
+const icons = {
+  studies: Folder, upload: FileUp, chart: ChartColumn, grid: Layers,
+  arrow: ArrowRight, plus: Plus, logout: LogOut, menu: Menu,
+  check: Check, file: FileText, help: BookOpen, responses: ClipboardList,
+  invitation: Link, download: Download, settings: Settings,
+}
+
+// Decorative icons accompany text. Icon-only buttons must provide their own label.
+export function Icon({ name, size = 20 }) {
+  const Symbol = icons[name] || Layers
+  return <Symbol size={size} strokeWidth={2} aria-hidden="true" focusable="false" />
 }
 export function Brand() {
   return (
     <div className="brand">
-      <svg
-        width="32"
-        height="32"
-        viewBox="0 0 32 32"
-        fill="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M5 25V8m7 17V15m7 10V4m7 21V12"
-          stroke="currentColor"
-          strokeWidth="3"
-        />
-        <path d="M3 29h26" stroke="currentColor" />
-      </svg>
+      <img className="brand-mark" src="/brand/acredi.png" alt="" width="40" height="40" />
       <span>
-        Encuestas <strong>UMSS</strong>
+        <strong className="brand-name">ACRE<span>DI</span></strong>
         <small>Seguimiento académico</small>
       </span>
     </div>

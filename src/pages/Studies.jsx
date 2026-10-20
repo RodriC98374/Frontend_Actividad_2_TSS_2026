@@ -1,3 +1,4 @@
+import { useConfirmDiscard } from '@/context/unsaved.js'
 import { useState } from 'react'
 import {
   Link,
@@ -25,6 +26,7 @@ import {
 import { date, number, surveyLabels } from '@/utils/format.js'
 
 export default function Studies() {
+  const confirmDiscard = useConfirmDiscard()
   const [page, setPage] = useState(1)
   const [creating, setCreating] = useState(false)
   const resource = useResource('/datasets', { page, per_page: 15 })
@@ -37,7 +39,7 @@ export default function Studies() {
         actions={
           <button
             className="button primary"
-            onClick={() => setCreating(!creating)}
+            onClick={() => { if (!creating || confirmDiscard()) setCreating(!creating) }}
           >
             <Icon name="plus" />
             {creating ? 'Cerrar formulario' : 'Nuevo estudio'}
@@ -47,6 +49,7 @@ export default function Studies() {
       {creating && (
         <section className="panel form-panel">
           <h2>Crear un estudio</h2>
+          <p className="form-intro">Define el alcance de la encuesta. Después podrás importar archivos o recibir respuestas.</p>
           <ActionForm
             submit="Crear estudio"
             onSubmit={async (form) => {
@@ -121,7 +124,7 @@ export default function Studies() {
             </Table>
             <Pagination meta={resource.data?.meta} onPage={setPage} />
           </section>
-        ) : (
+        ) : !creating ? (
           <Empty
             title="Tu primer estudio empieza aquí"
             action={
@@ -136,7 +139,7 @@ export default function Studies() {
             Crea un estudio para cargar archivos o recibir respuestas por
             formulario.
           </Empty>
-        )}
+        ) : null}
       </Resource>
       <section className="workflow-strip" aria-label="Proceso de trabajo">
         <div>
@@ -199,9 +202,10 @@ export function StudyLayout() {
 }
 
 export function StudyOverview() {
+  const { user } = useAuth()
   const { dataset } = useOutletContext()
   const summary = useResource(`/datasets/${dataset.id}/summary`)
-  const imports = useResource('/imports', { per_page: 5 })
+  const imports = useResource('/imports', { per_page: 5, dataset_id: dataset.id })
   const counts = summary.data?.data.counts || []
   const included = counts
     .filter((c) => c.included)
@@ -217,12 +221,12 @@ export function StudyOverview() {
           dataset.description ||
           `Estudio de encuestas${dataset.reference_period ? ` · ${dataset.reference_period}` : ''}`
         }
-        actions={
+        actions={user.can_import_files && (
           <Link className="button primary" to="importar">
             <Icon name="upload" />
             Importar archivo
           </Link>
-        }
+        )}
       />
       <Resource resource={summary}>
         <div className="stat-strip">
@@ -279,14 +283,14 @@ export function StudyOverview() {
               <h2>Trabajo con este estudio</h2>
             </div>
             <div className="task-links">
-              <Link to="importar">
+              {user.can_import_files ? <Link to="importar">
                 <Icon name="upload" />
                 <div>
                   <strong>Cargar y revisar un archivo</strong>
                   <small>Excel o CSV, con configuración de columnas</small>
                 </div>
                 <Icon name="arrow" />
-              </Link>
+              </Link> : <p className="panel-note">La carga y configuración de archivos requieren permiso adicional. Solicítalo al administrador.</p>}
               <Link to="invitaciones">
                 <Icon name="plus" />
                 <div>
@@ -312,7 +316,7 @@ export function StudyOverview() {
           <section className="panel">
             <div className="panel-heading">
               <h2>Archivos recientes</h2>
-              <Link to="/importaciones">Ver todas las importaciones</Link>
+              <Link to={`/importaciones?dataset_id=${dataset.id}`}>Ver todas las importaciones</Link>
             </div>
             <Table headers={['Archivo', 'Estado', 'Fecha']}>
               {imports.data.data
@@ -486,9 +490,8 @@ export function Help() {
           <Resource resource={me}>
             <p>{me.data?.data.name || user.name}</p>
             <p>
-              {me.data?.data.can_view_contacts
-                ? 'Puedes cargar archivos y consultar originales y contactos.'
-                : 'Puedes revisar y analizar. La carga, el mapeo y los contactos requieren un permiso adicional.'}
+              {(me.data?.data || user).can_import_files ? 'Puedes cargar y configurar archivos originales. ' : 'La carga de archivos requiere permiso de importación. '}
+              {(me.data?.data || user).can_view_contacts ? 'Puedes consultar contactos.' : 'No tienes acceso a contactos.'}
             </p>
           </Resource>
           <h2>Límites del servidor</h2>

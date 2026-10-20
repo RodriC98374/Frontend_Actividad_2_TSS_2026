@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from '@/context/unsaved.js'
 import { useEffect, useState } from 'react'
 import { api } from '@/services/api.js'
 import {
@@ -20,6 +21,8 @@ export default function Capture() {
   const [values, setValues] = useState({})
   const [step, setStep] = useState(0)
   const [sent, setSent] = useState(null)
+  const markDirty = useUnsavedChanges()
+  useEffect(() => { markDirty(!sent && Object.keys(values).length > 0) }, [values, sent, markDirty])
   const [reload, setReload] = useState(0)
   useEffect(() => {
     // The invitation is sent only in the Authorization header and kept in memory.

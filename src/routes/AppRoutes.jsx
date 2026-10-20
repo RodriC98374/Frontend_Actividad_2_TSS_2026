@@ -1,5 +1,6 @@
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 
+import { Loading, ErrorNotice } from '@/components/ui.jsx'
 import Layout from '@/components/layout/Layout.jsx'
 import NotFound from '@/pages/NotFound.jsx'
 import Login from '@/pages/Login.jsx'
@@ -22,8 +23,10 @@ import Schemas, {
 import Capture from '@/pages/Capture.jsx'
 
 function Protected() {
-  const { user } = useAuth()
+  const { user, loading, sessionError } = useAuth()
   const location = useLocation()
+  if (loading) return <Loading />
+  if (sessionError) return <ErrorNotice error={sessionError} retry={() => window.location.reload()} />
   return user ? (
     <Outlet />
   ) : (
