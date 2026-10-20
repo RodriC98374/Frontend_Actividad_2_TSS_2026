@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>Encuestas UMSS</title>
+  <rect width="64" height="64" rx="16" fill="#102c36"/>
+  <path d="M17 16v23c0 9 6 14 15 14s15-5 15-14V16" stroke="#f3f8f9" stroke-width="6" stroke-linecap="round"/>
+  <path d="m24 28 7 7 14-17" stroke="#69d5c1" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,29 +1,25 @@
-const BASE_URL = import.meta.env.VITE_API_URL ?? ''
+import { createApiClient } from './http.js'
 
-async function request(path, { method = 'GET', body, headers, ...options } = {}) {
-  const response = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers: {
-      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      ...headers,
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    ...options,
-  })
-
-  if (!response.ok) {
-    throw new Error(`${method} ${path} falló con estado ${response.status}`)
-  }
-
-  if (response.status === 204) return null
-
-  return response.json()
+let token = null
+export function setAccessToken(value) {
+  token = value
 }
+export const api = createApiClient({
+  baseUrl: import.meta.env.VITE_API_URL || '/api/v1',
+  getToken: () => token,
+  sessionAuth: true,
+  getCsrfToken: () => {
+    const value = document.cookie.split('; ').find(c => c.startsWith('XSRF-TOKEN='))
+    return value ? decodeURIComponent(value.slice(11)) : null
+  },
+  onUnauthorized: () => window.dispatchEvent(new Event('session-expired')),
+})
 
-export const api = {
-  get: (path, options) => request(path, { ...options, method: 'GET' }),
-  post: (path, body, options) => request(path, { ...options, method: 'POST', body }),
-  put: (path, body, options) => request(path, { ...options, method: 'PUT', body }),
-  patch: (path, body, options) => request(path, { ...options, method: 'PATCH', body }),
-  delete: (path, options) => request(path, { ...options, method: 'DELETE' }),
+export async function prepareSession() {
+  const base = import.meta.env.VITE_API_URL || '/api/v1'
+  const url = new URL(base, window.location.origin)
+  const response = await fetch(`${url.origin}/sanctum/csrf-cookie`, {
+    credentials: 'include', headers: {Accept: 'application/json'}, signal: AbortSignal.timeout(30000),
+  })
+  if (!response.ok) throw new Error('No se pudo preparar la sesión. Intenta nuevamente.')
 }
