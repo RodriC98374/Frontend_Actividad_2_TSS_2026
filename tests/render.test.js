@@ -14,6 +14,34 @@ test('renderiza tablas paginadas, estados y controles con valores reales', async
     const controls = await server.ssrLoadModule(
       '/src/components/SurveyControls.jsx',
     )
+    const { ResultCard } = await server.ssrLoadModule('/src/pages/Results.jsx')
+    const emptyResult = renderToStaticMarkup(createElement(ResultCard, {
+      entry: { field: {id:'T14', label:'Situación laboral'}, kind:'distribution', result: {
+        denominator:0,total_responses:3,states:{sin_respuesta:3},items:[],data_version:1,
+      } }, datasetId:'test',survey:'titulados',filters:[],
+    }))
+    assert.match(emptyResult, /No hay respuestas válidas/)
+    assert.match(emptyResult, /0 respuestas válidas de 3 seleccionadas/)
+    assert.doesNotMatch(emptyResult, /0 %/)
+    const charts = await server.ssrLoadModule('/src/components/ResultCharts.jsx')
+    const chartData = {denominator:4,items:[{code:'si',label:'Sí',count:3,percentage:75},{code:'no',label:'No',count:1,percentage:25}]}
+    for (const type of ['pie','columns','bars']) {
+      const html = renderToStaticMarkup(createElement(charts.DistributionChart,{data:chartData,type,title:'Contratación'}))
+      assert.match(html,/75/)
+      assert.match(html,/25/)
+      assert.match(html,/Sí/)
+      assert.doesNotMatch(html,/NaN|Infinity/)
+    }
+    const emptyRelation = renderToStaticMarkup(createElement(charts.RelationChart,{data:{denominator:0}}))
+    assert.match(emptyRelation,/ambas preguntas/)
+    const { PairChart } = await server.ssrLoadModule('/src/components/VisualSummary.jsx')
+    const pairData = {rows:[{code:'si',label:'Contrató'},{code:'no',label:'No contrató'}],columns:[{code:'si',label:'Contrataría'},{code:'no',label:'No contrataría'}],cells:[{row_code:'si',column_code:'si',count:3},{row_code:'si',column_code:'no',count:1},{row_code:'no',column_code:'si',count:0},{row_code:'no',column_code:'no',count:0}]}
+    for (const type of ['grouped','stacked']) {
+      const html = renderToStaticMarkup(createElement(PairChart,{data:pairData,type}))
+      assert.match(html,/Contrataría/)
+      assert.doesNotMatch(html,/NaN|Infinity/)
+      if (type === 'stacked') { assert.match(html,/75 %/); assert.match(html,/Sin pares válidos/) }
+    }
     const page = renderToStaticMarkup(
       createElement(ui.Pagination, {
         meta: { total: 101, page: 2, per_page: 20 },
@@ -50,6 +78,8 @@ test('renderiza tablas paginadas, estados y controles con valores reales', async
     )
     for (const module of [
       'Analytics',
+      'Results',
+      'ImportWizard',
       'Capture',
       'Imports',
       'Login',

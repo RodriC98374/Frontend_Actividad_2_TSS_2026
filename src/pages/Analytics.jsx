@@ -18,7 +18,7 @@ const kinds = {
   'numeric-summary': 'Resumen numérico',
   crosstab: 'Cruce de dos variables',
 }
-export default function Analytics() {
+export default function AdvancedAnalytics() {
   const { dataset } = useOutletContext()
   const [survey, setSurvey] = useState('titulados')
   const [kind, setKind] = useState('distribution')

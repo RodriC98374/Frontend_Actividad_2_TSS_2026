@@ -25,6 +25,7 @@ import {
 } from '@/components/ui.jsx'
 import { number, date, surveyLabels } from '@/utils/format.js'
 import { buildMapping, displayValue } from '@/utils/survey.js'
+export { default as ImportDetail } from './ImportWizard.jsx'
 
 export default function Imports() {
   const [page, setPage] = useState(1)
@@ -124,11 +125,11 @@ export function Upload() {
           <div>
             <h2>Archivo de encuestas</h2>
             <p>
-              Una fila por registro y una columna por variable. Puedes
-              configurar hojas, encabezados y columnas después de cargarlo.
+              Sube tu archivo. Revisaremos las preguntas reconocidas y te
+              pediremos aclarar únicamente lo que cambie su interpretación.
             </p>
             <ul className="plain-list">
-              <li>Excel .xlsx o CSV.</li>
+              <li>Excel .xlsx, CSV o PDF tabular de respuestas de empleadores.</li>
               <li>Los originales se conservan en el servidor.</li>
               <li>La carga no modifica las estadísticas.</li>
             </ul>
@@ -142,11 +143,11 @@ export function Upload() {
           </div>
           <section className="panel padded">
             <ActionForm
-              submit="Cargar y configurar"
+              submit="Subir y revisar mi archivo"
               onSubmit={async (form) => {
                 const file = form.get('file')
-                if (!/\.(xlsx|csv)$/i.test(file.name))
-                  throw new Error('Selecciona un archivo XLSX o CSV.')
+                if (!/\.(xlsx|csv|pdf)$/i.test(file.name))
+                  throw new Error('Selecciona un archivo XLSX, CSV o PDF.')
                 if (max && file.size > max)
                   throw new Error('El archivo supera el tamaño permitido.')
                 form.set('dataset_id', dataset.id)
@@ -160,7 +161,7 @@ export function Upload() {
                   label="Seleccionar archivo"
                   name="file"
                   type="file"
-                  accept=".xlsx,.csv"
+                  accept=".xlsx,.csv,.pdf"
                   required
                 />
                 <small>
@@ -174,7 +175,7 @@ export function Upload() {
                 maxLength={255}
                 placeholder="Encuesta de seguimiento, gestión 2026"
               />
-              <div className="form-grid">
+              <details className="guided-details"><summary>Ajustes de lectura para archivos CSV</summary><div className="form-grid">
                 <Select
                   label="Separador si es CSV"
                   name="csv_delimiter"
@@ -194,7 +195,7 @@ export function Upload() {
                     label: value,
                   }))}
                 />
-              </div>
+              </div></details>
             </ActionForm>
           </section>
         </div>
@@ -203,7 +204,7 @@ export function Upload() {
   )
 }
 
-export function ImportDetail() {
+export function LegacyImportDetail() {
   const { importId } = useParams()
   const resource = useResource(`/imports/${importId}`)
   const confirmDiscard = useConfirmDiscard()
@@ -857,7 +858,7 @@ function SheetEditor({ item, sheet, editable, onSaved }) {
   )
 }
 
-function ImportReview({ item, editable, onSaved }) {
+export function ImportReview({ item, editable, onSaved }) {
   const [view, setView] = useState('groups')
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState({})

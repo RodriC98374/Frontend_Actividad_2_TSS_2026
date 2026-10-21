@@ -12,7 +12,7 @@ import Studies, {
   Help,
 } from '@/pages/Studies.jsx'
 import Imports, { Upload, ImportDetail } from '@/pages/Imports.jsx'
-import Analytics from '@/pages/Analytics.jsx'
+import Analytics from '@/pages/Results.jsx'
 import Responses, { ResponseDetail } from '@/pages/Responses.jsx'
 import Schemas, {
   SchemaDetail,

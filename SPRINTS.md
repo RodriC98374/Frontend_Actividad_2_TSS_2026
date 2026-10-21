@@ -11,7 +11,13 @@ Cada sprint termina con pruebas y una demostración del flujo. El orden expresa 
 | 5 | Esquemas utilizables | Variables publicadas conectadas a importación, captura y estadísticas; versiones y compatibilidad comprobadas con backend | Pendiente |
 | 6 | Validación y preparación de entrega | Recorrido con archivo representativo, errores y permisos; escritorio/móvil/teclado; rendimiento con volumen; consolidación de CSS y documentación; despliegue y respaldo verificados | Pendiente |
 
-## Sprint 1: alcance
+Avance del sprint 6 (21/10/2026): recorrido HTTP con sesión, CSV sintético con errores, revisión, incorporación, estadísticas y exportaciones CSV/XLSX aprobado; 34 pruebas backend (1.828 aserciones), 16 frontend, lint y build correctos. Corregida validación de teléfonos. Continúan pendientes la revisión interactiva, datos representativos institucionales y preparación de despliegue. Evidencia y versiones en `VERIFICACION_FLUJO.md`.
+
+## Reorientación: flujo sencillo
+
+Implementado el asistente subir → revisar interpretación → confirmar → resultados, sin pestañas técnicas iniciales. Las preguntas reconocidas son un resumen y solo se solicitan aclaraciones que cambian su interpretación. Resultados automáticos con todos los temas, selección opcional de población y descarga por resultado. El reconocimiento conservador y las validaciones se mantienen. La revisión con el Excel del usuario y la comprobación interactiva siguen pendientes; no se da por resuelto el rendimiento local.
+
+## Sprint 1: detalle del alcance
 
 No concede permisos nuevos ni cambia credenciales. Expone correctamente las capacidades existentes. La separación de permisos requiere cambios de autorización y pertenece al sprint 2.
 
