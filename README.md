@@ -11,11 +11,11 @@ npm ci
 npm run dev
 ```
 
-Abrir la URL que imprime Vite (puerto 5173). El cliente usa `/api/v1` y Vite redirige `/api` al backend local `http://127.0.0.1:8000`. Iniciar antes el backend y PostgreSQL siguiendo el README del repositorio de backend.
+Abrir la URL que imprime Vite (puerto 5174). El cliente usa `/api/v1` y Vite redirige `/api` al backend local `http://127.0.0.1:8001`. Iniciar antes el backend y PostgreSQL siguiendo el README del repositorio de backend.
 
 No hay credenciales administrativas predeterminadas para la aplicación. Usar la cuenta creada mediante `php artisan app:create-admin` del backend. El navegador usa una sesión Laravel con cookie HttpOnly y protección CSRF. Al recargar, consulta /auth/me antes de resolver las rutas protegidas. No guarda contraseñas ni tokens administrativos en localStorage.
 
-Opcionalmente copiar `.env.example` a `.env.local`. Para una API remota configurar `VITE_API_URL=https://servidor/api/v1` y autorizar el origen del frontend mediante `FRONTEND_URL` en el backend. Las variables `VITE_*` son públicas: nunca colocar contraseñas o secretos. Una URL que solo contiene el origen, por ejemplo `http://localhost:8000`, se normaliza agregando `/api/v1`.
+Opcionalmente copiar `.env.example` a `.env.local`. Para una API remota configurar `VITE_API_URL=https://servidor/api/v1` y autorizar el origen del frontend mediante `FRONTEND_URL` en el backend. Las variables `VITE_*` son públicas: nunca colocar contraseñas o secretos. Una URL que solo contiene el origen, por ejemplo `http://localhost:8001`, se normaliza agregando `/api/v1`.
 
 Para apuntar el proxy de desarrollo a otro backend:
 
@@ -25,6 +25,8 @@ npm run dev
 ```
 
 ## Flujos implementados
+
+La importación abre ahora un asistente de reconocimiento, aclaraciones y confirmación. Las estadísticas muestran automáticamente los resultados disponibles, organizados por temas; limitar las personas analizadas es una acción independiente. Detalles, decisiones y límites en [FLUJO_SIMPLIFICADO.md](FLUJO_SIMPLIFICADO.md).
 
 - Acceso administrativo, cierre de sesión y tratamiento de sesión vencida; consulta de permisos.
 - Listado paginado, creación y resumen de estudios; conteos por encuesta, inclusión y origen.
@@ -68,7 +70,7 @@ Las pruebas del backend usan exclusivamente `umss_testing`. No ejecutarlas contr
 
 ```powershell
 Get-Content -Raw '..\Frontend_Actividad_2_TSS_2026\tests\backend-fixture.php' | docker compose exec -T -e APP_ENV=testing -e DB_DATABASE=umss_testing app php
-docker compose run --rm --no-deps --name umss-frontend-smoke-api -p 127.0.0.1:8001:8000 -e APP_ENV=testing -e DB_DATABASE=umss_testing app php artisan serve --host=0.0.0.0 --port=8000 --no-reload
+docker compose run --rm --no-deps --name umss-frontend-smoke-api -p 127.0.0.1:8002:8000 -e APP_ENV=testing -e DB_DATABASE=umss_testing app php artisan serve --host=0.0.0.0 --port=8000 --no-reload
 ```
 
 `--no-reload` conserva las variables de entorno del contenedor en el proceso PHP del servidor. El fixture rechaza cualquier entorno distinto de `testing` o base distinta de `umss_testing`.
@@ -77,16 +79,24 @@ Desde el frontend, en otra terminal:
 
 ```powershell
 node tests/integration-smoke.mjs
-$env:BACKEND_PROXY_URL = 'http://127.0.0.1:8001'
+node tests/integration-smoke.mjs --session
+$env:BACKEND_PROXY_URL = 'http://127.0.0.1:8002'
 npm run dev -- --host 127.0.0.1 --port 5174 --strictPort
 ```
 
-Cuenta **solo de prueba aislada**: `frontend-ui@example.test`, contraseña desechable `FrontendIntegration2026!`. No se crea en la aplicación de trabajo. `integration-smoke.mjs` usa exclusivamente el puerto 8001; crea estudios, cargas y demás registros sintéticos en esa base.
+Cuenta **solo de prueba aislada**: `frontend-ui@example.test`, contraseña desechable `FrontendIntegration2026!`. No se crea en la aplicación de trabajo. `integration-smoke.mjs` usa exclusivamente el puerto 8002; crea estudios, cargas y demás registros sintéticos en esa base.
 
 Detener la instancia temporal del frontend con Ctrl+C y el contenedor con `docker stop umss-frontend-smoke-api`. No borrar el volumen de PostgreSQL. Para volver al backend habitual, quitar `BACKEND_PROXY_URL` de esa terminal o abrir otra terminal.
+
+El modo `--session` recorre la misma API con cookies y CSRF, comprueba rechazo sin CSRF y cierre de sesión efectivo. Node utiliza un almacén de cookies limitado al puerto 8002; esta prueba no sustituye la comprobación visual ni las políticas de cookies del navegador. Ambos modos verifican revalidación obligatoria, incorporación idempotente, porcentajes, rechazo de exportación desactualizada y descargas CSV/XLSX. La instancia aislada debe usar una sesión persistente entre peticiones (`SESSION_DRIVER=file` o `database`, nunca `array`).
 
 ## Producción
 
 `npm run build` genera `dist/`. Configurar el servidor para devolver `index.html` en rutas del frontend (incluida `/formulario`), y servir o redirigir `/api` al backend. Si se usa otra URL de API, definir `VITE_API_URL` antes de compilar. `vite preview` sirve el build y necesita una API absoluta en el build o su propio proxy; no es un servidor de producción.
 
 La tipografía IBM Plex se carga desde Google Fonts; si el entorno no tiene red usa la fuente del sistema. No se incluyen analítica ni servicios de IA. Dirección visual y decisiones en `DISENO.md`.
+
+
+### Puertos locales de ACREDI
+
+Web: http://127.0.0.1:5174 · API: http://127.0.0.1:8001/api/v1. El puerto interno del contenedor PHP sigue siendo 8000. Vite usa puerto estricto y conecta su proxy al 8001 para evitar conflictos con comunidad-otb (5173/8000). PostgreSQL mantiene 55432.

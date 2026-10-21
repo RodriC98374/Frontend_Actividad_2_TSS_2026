@@ -2,19 +2,56 @@
 import assert from 'node:assert/strict'
 import { createApiClient } from '../src/services/http.js'
 
-const base = 'http://127.0.0.1:8001/api/v1'
+const base = 'http://127.0.0.1:8002/api/v1'
 let token
-const api = createApiClient({ baseUrl: base, getToken: () => token })
+const sessionAuth = process.argv.includes('--session')
+const cookies = new Map()
+// Node has no browser cookie jar. This adapter is restricted to the isolated API.
+async function sessionFetch(url, options = {}) {
+  assert.equal(new URL(url).origin, 'http://127.0.0.1:8002')
+  const headers = new Headers(options.headers)
+  headers.set('Origin', 'http://127.0.0.1:5174')
+  if (options.credentials === 'include' && cookies.size)
+    headers.set('Cookie', [...cookies].map(([k, v]) => `${k}=${v}`).join('; '))
+  const response = await fetch(url, { ...options, headers })
+  if (options.credentials === 'include') {
+    for (const cookie of response.headers.getSetCookie()) {
+      const pair = cookie.split(';', 1)[0]
+      const separator = pair.indexOf('=')
+      cookies.set(pair.slice(0, separator), pair.slice(separator + 1))
+    }
+  }
+  return response
+}
+const api = createApiClient({
+  baseUrl: base, getToken: () => token, sessionAuth,
+  getCsrfToken: () => decodeURIComponent(cookies.get('XSRF-TOKEN') || ''),
+  fetcher: sessionAuth ? sessionFetch : fetch,
+})
 const data = async (promise) => (await promise).data
+if (sessionAuth) {
+  const csrf = await sessionFetch('http://127.0.0.1:8002/sanctum/csrf-cookie', {
+    credentials: 'include', headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(30000),
+  })
+  assert.equal(csrf.status, 204)
+  assert.ok(cookies.has('XSRF-TOKEN'))
+  const withoutCsrf = await sessionFetch(`${base}/auth/login`, {
+    method: 'POST', credentials: 'include',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ browser_session: true }),
+  })
+  assert.equal(withoutCsrf.status, 419)
+}
 const login = await data(
   api.post(
     '/auth/login',
-    { email: 'frontend-ui@example.test', password: 'FrontendIntegration2026!' },
-    { token: null },
+    { email: 'frontend-ui@example.test', password: 'FrontendIntegration2026!', browser_session: sessionAuth },
+    sessionAuth ? {} : { token: null },
   ),
 )
 assert.equal(login.user.name, 'Prueba de frontend')
 token = login.access_token
+if (sessionAuth) assert.equal(token, undefined)
 assert.equal((await data(api.get('/auth/me'))).can_view_contacts, true)
 const capabilities = await data(api.get('/capabilities'))
 const catalog = await data(
@@ -102,6 +139,14 @@ configured = await data(
     reason: 'Valor sintético no interpretable',
   }),
 )
+await assert.rejects(
+  api.post(`${path}/commit`, {
+    configuration_revision: configured.configuration_revision,
+    validation_run_id: validation.id,
+    policy: { mode: 'append' },
+  }, { headers: { 'Idempotency-Key': crypto.randomUUID() } }),
+  (e) => e.status === 409,
+)
 validation = await data(
   api.post(`${path}/validate`, {
     expected_configuration_revision: configured.configuration_revision,
@@ -166,16 +211,36 @@ for (const [kind, query] of [
     }),
   )
   assert.equal(result.denominator, 2)
-  const exported = await data(
+  if (kind === 'distribution') {
+    assert.deepEqual(result.items.map((item) => item.count), [1, 1])
+    assert.deepEqual(result.items.map((item) => item.percentage), [50, 50])
+  }
+  await assert.rejects(
     api.post(`/datasets/${dataset.id}/exports`, {
-      ...specification,
-      kind,
-      expected_data_version: result.data_version,
-      format: 'csv',
+      ...specification, kind, expected_data_version: result.data_version - 1, format: 'csv',
     }),
+    (e) => e.status === 409,
   )
-  assert.equal((await data(api.get(`/exports/${exported.id}`))).status, 'ready')
-  assert.ok((await api.download(`/exports/${exported.id}/download`)).size)
+  for (const format of ['csv', 'xlsx']) {
+    const exported = await data(
+      api.post(`/datasets/${dataset.id}/exports`, {
+        ...specification,
+        kind,
+        expected_data_version: result.data_version,
+        format,
+      }),
+    )
+    assert.equal((await data(api.get(`/exports/${exported.id}`))).status, 'ready')
+    const downloaded = await api.download(`/exports/${exported.id}/download`)
+    assert.ok(downloaded.size)
+    if (format === 'csv') {
+      const text = await downloaded.text()
+      assert.ok(text.includes('data_version'))
+      assert.ok(text.includes(dataset.id))
+    } else {
+      assert.equal(Buffer.from(await downloaded.arrayBuffer()).subarray(0, 2).toString(), 'PK')
+    }
+  }
 }
 const filtered = await data(
   api.get(`/datasets/${dataset.id}/analytics/distribution`, {
@@ -272,6 +337,8 @@ assert.equal(
   1,
 )
 await api.post('/auth/logout')
+await assert.rejects(api.get('/auth/me'), (e) => e.status === 401)
 console.log(
+  sessionAuth ? 'Modo sesión con cookies y CSRF.' : 'Modo Bearer.',
   'Integración HTTP completa: acceso, archivos, perfiles, revisión, incorporación idempotente, corrección, estadísticas, exportación, captura y esquemas. Solo datos sintéticos en umss_testing.',
 )

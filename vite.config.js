@@ -13,15 +13,16 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    port: 5174,
+    strictPort: true,
     open: false,
     proxy: {
       '/sanctum': {
-        target: process.env.BACKEND_PROXY_URL || 'http://127.0.0.1:8000',
+        target: process.env.BACKEND_PROXY_URL || 'http://127.0.0.1:8001',
         changeOrigin: true,
       },
       '/api': {
-        target: process.env.BACKEND_PROXY_URL || 'http://127.0.0.1:8000',
+        target: process.env.BACKEND_PROXY_URL || 'http://127.0.0.1:8001',
         changeOrigin: true,
       },
     },
