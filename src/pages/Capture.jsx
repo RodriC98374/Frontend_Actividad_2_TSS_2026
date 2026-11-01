@@ -10,7 +10,7 @@ import {
   PageTitle,
 } from '@/components/ui.jsx'
 import { ValueInput } from '@/components/SurveyControls.jsx'
-import { captureAnswers, isCaptureFieldVisible } from '@/utils/survey.js'
+import { captureAnswers, isCaptureFieldVisible, clearInvitationFragment } from '@/utils/survey.js'
 
 export default function Capture() {
   const [token] = useState(() =>
@@ -26,11 +26,7 @@ export default function Capture() {
   const [reload, setReload] = useState(0)
   useEffect(() => {
     // The invitation is sent only in the Authorization header and kept in memory.
-    window.history.replaceState(
-      null,
-      '',
-      window.location.pathname + window.location.search,
-    )
+    clearInvitationFragment()
     if (!token) return
     const controller = new AbortController()
     api

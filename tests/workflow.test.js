@@ -1,6 +1,18 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { suggestMapping, simpleReviewColumns, topicFor, populationFilter } from '../src/utils/workflow.js'
+import { clearInvitationFragment } from '../src/utils/survey.js'
+
+test('retirar el token de invitación conserva la entrada del enrutador y la consulta pública', () => {
+  const routerState = {idx:2,key:'capture-route',usr:{from:'/estudios'}}
+  const calls = []
+  clearInvitationFragment({
+    history: {state:routerState,replaceState(...args) {calls.push(args)}},
+    location: {pathname:'/formulario',search:'?idioma=es',hash:'#token=synthetic-private-token'},
+  })
+  assert.deepEqual(calls, [[routerState,'','/formulario?idioma=es']])
+  assert.equal(calls[0][0], routerState)
+})
 
 test('revisión simple deja pendientes metadatos, múltiples y asignaciones duplicadas', () => {
   const columns = Array.from({length:6}, (_,column_index) => ({column_index}))

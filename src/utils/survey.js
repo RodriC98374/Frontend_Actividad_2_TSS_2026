@@ -67,3 +67,8 @@ export function captureAnswers(fields, values) {
     if (!isCaptureFieldVisible(field.id, answers)) answers[field.id] = null
   return answers
 }
+// Preserve the router's history entry while removing the private invitation fragment.
+export function clearInvitationFragment(browserWindow = window) {
+  const { history, location } = browserWindow
+  history.replaceState(history.state, '', location.pathname + location.search)
+}

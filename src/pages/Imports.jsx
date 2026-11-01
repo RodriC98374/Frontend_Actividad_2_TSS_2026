@@ -896,7 +896,7 @@ export function ImportReview({ item, editable, onSaved }) {
     <>
       <div className="review-toolbar">
         <div>
-          <h2>Validación de la revisión {item.configuration_revision}</h2>
+          <h2>Validación de la revisión {summary.data?.summary.configuration_revision ?? item.configuration_revision}</h2>
           <p>
             Las decisiones y cambios de configuración requieren validar de
             nuevo.
@@ -924,6 +924,7 @@ export function ImportReview({ item, editable, onSaved }) {
       ) : (
         <>
           <Resource resource={summary}>
+            {current === false && <p className="notice">Esta validación corresponde a una configuración anterior. Valida la configuración vigente para actualizar los conteos y aplicar las decisiones.</p>}
             <div className="stat-strip">
               <div>
                 <span>Filas incluidas</span>
@@ -1061,7 +1062,7 @@ export function ImportReview({ item, editable, onSaved }) {
                   >
                     {issues.data?.data.map((i) => (
                       <tr key={i.id}>
-                        <td>{i.raw_row_id || '—'}</td>
+                        <td>{i.source_row_number ?? '—'}<small className="cell-sub">{i.source_sheet_name}</small></td>
                         <td>{i.field_id || '—'}</td>
                         <td>
                           <Status value={i.severity} />
@@ -1090,7 +1091,7 @@ export function ImportReview({ item, editable, onSaved }) {
                   >
                     {rows.data?.data.map((row) => (
                       <tr key={row.id}>
-                        <td>{row.raw_row_id}</td>
+                        <td>{row.source_row_number ?? '—'}<small className="cell-sub">{row.source_sheet_name}</small></td>
                         <td>
                           {row.proposed_inclusion ? 'Sí' : 'No'}
                           <small className="cell-sub">
@@ -1196,9 +1197,10 @@ export function ImportReview({ item, editable, onSaved }) {
           </Resource>
           {decision && (
             <section className="panel padded">
-              <h2>Decisión para la fila original {decision.raw_row_id}</h2>
+              <h2>Decisión para la fila original {decision.source_row_number ?? '—'}</h2>
+              {decision.source_sheet_name && <p>Hoja: {decision.source_sheet_name}</p>}
               <ActionForm
-                submit="Guardar decisión y volver a validar"
+                submit="Guardar decisión"
                 onSubmit={async (form) => {
                   await api.post(`/imports/${item.id}/row-decisions`, {
                     expected_configuration_revision:

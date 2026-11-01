@@ -134,7 +134,7 @@ function Mapping({ item, sheet, survey, onSurveyChange, header, reload }) {
   </section></Resource></Resource>
 }
 
-function Confirmation({ item, reload }) {
+export function Confirmation({ item, reload }) {
   const navigate = useNavigate()
   const key = useRef(null)
   const [stage, setStage] = useState('')
@@ -147,8 +147,9 @@ function Confirmation({ item, reload }) {
   const observations = (counts.warning_issues || 0) + (counts.excluded_rows || 0)
   return <section className="panel padded">
     <h2>{ready ? 'Revisa el resumen y abre tus resultados' : 'Comprobar las respuestas'}</h2>
-    <div className="stat-strip"><div><span>Respuestas que se incorporarán</span><strong>{number(counts.included_rows)}</strong></div><div><span>Filas fuera de estadísticas</span><strong>{number(counts.excluded_rows)}</strong></div><div><span>Observaciones</span><strong>{number(counts.warning_issues)}</strong></div></div>
-    {observations > 0 && <p className="notice">Hay información que no pudo interpretarse o filas excluidas. Revisa las observaciones al pie. Las respuestas inválidas no cuentan en los porcentajes; una fila puede aportar otras respuestas válidas.</p>}
+    {ready ? <div className="stat-strip"><div><span>Respuestas que se incorporarán</span><strong>{number(counts.included_rows)}</strong></div><div><span>Filas fuera de estadísticas</span><strong>{number(counts.excluded_rows)}</strong></div><div><span>Observaciones</span><strong>{number(counts.warning_issues)}</strong></div></div>
+      : <p className="notice">Vuelve a revisar las respuestas para actualizar los conteos y aplicar las decisiones guardadas. Todavía no se incorporará ningún dato.</p>}
+    {ready && observations > 0 && <p className="notice">Hay información que no pudo interpretarse o filas excluidas. Revisa las observaciones al pie. Las respuestas inválidas no cuentan en los porcentajes; una fila puede aportar otras respuestas válidas.</p>}
     <ActionForm submit={ready ? 'Confirmar y ver estadísticas' : 'Revisar respuestas'} submitDisabled={ready && (previous.loading || !!previous.error)} onSubmit={async form => {
       if (!ready) {setStage('Comprobando respuestas…'); try {await api.post(`/imports/${item.id}/validate`, {expected_configuration_revision:item.configuration_revision})} finally {reload();setStage('')} return}
       if (observations && !form.get('accept_observations')) throw new Error('Confirma que revisaste las observaciones.')

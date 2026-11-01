@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { MemoryRouter } from 'react-router-dom'
 import { createServer } from 'vite'
 
 test('renderiza tablas paginadas, estados y controles con valores reales', async () => {
@@ -15,6 +16,16 @@ test('renderiza tablas paginadas, estados y controles con valores reales', async
       '/src/components/SurveyControls.jsx',
     )
     const { ResultCard } = await server.ssrLoadModule('/src/pages/Results.jsx')
+    const { Confirmation } = await server.ssrLoadModule('/src/pages/ImportWizard.jsx')
+    const pendingImport = {id:'import-test',dataset_id:'test',status:'configured',sheets:[],counts:{included_rows:12,excluded_rows:0,warning_issues:3}}
+    const pendingConfirmation = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(Confirmation, {item:pendingImport,reload(){}})))
+    assert.match(pendingConfirmation, /actualizar los conteos/)
+    assert.doesNotMatch(pendingConfirmation, /Respuestas que se incorporarán/)
+    assert.doesNotMatch(pendingConfirmation, /Confirmar y ver estadísticas/)
+    const readyConfirmation = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(Confirmation, {item:{...pendingImport,status:'ready_to_commit',counts:{included_rows:10,excluded_rows:2,warning_issues:3}},reload(){}})))
+    assert.match(readyConfirmation, /Respuestas que se incorporarán/)
+    assert.match(readyConfirmation, /Confirmar y ver estadísticas/)
+    assert.doesNotMatch(readyConfirmation, /actualizar los conteos/)
     const emptyResult = renderToStaticMarkup(createElement(ResultCard, {
       entry: { field: {id:'T14', label:'Situación laboral'}, kind:'distribution', result: {
         denominator:0,total_responses:3,states:{sin_respuesta:3},items:[],data_version:1,
